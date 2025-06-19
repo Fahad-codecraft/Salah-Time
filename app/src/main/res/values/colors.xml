@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Primary Colors -->
+    <color name="primary_background">#0D1117</color>
+    <color name="secondary_background">#161B22</color>
+    <color name="card_background">#21262D</color>
+    <color name="accent_card_background">#1F2937</color>
+
+    <!-- Accent Colors -->
+    <color name="accent_color">#6366F1</color>
+    <color name="accent_light">#818CF8</color>
+    <color name="accent_dark">#4F46E5</color>
+
+    <!-- Text Colors -->
+    <color name="primary_text">#F0F6FC</color>
+    <color name="secondary_text">#8B949E</color>
+    <color name="tertiary_text">#6E7681</color>
+    <color name="accent_text">#C9D1D9</color>
+    <color name="time_text">#58A6FF</color>
+
+    <!-- Prayer Colors -->
+    <color name="fajr_color">#F59E0B</color>
+    <color name="sunrise_color">#FCD34D</color>
+    <color name="dhuhr_color">#EF4444</color>
+    <color name="asr_color">#10B981</color>
+    <color name="sunset_color">#F97316</color>
+    <color name="maghrib_color">#8B5CF6</color>
+    <color name="isha_color">#06B6D4</color>
+
+    <!-- Border and Divider Colors -->
+    <color name="border_color">#30363D</color>
+    <color name="divider_color">#21262D</color>
+
+    <!-- Gradient Colors -->
+    <color name="gradient_start">#0D1117</color>
+    <color name="gradient_middle">#161B22</color>
+    <color name="gradient_end">#21262D</color>
+
+    <!-- Ripple Effect -->
+    <color name="ripple_color">#30363D</color>
+</resources>
+
