@@ -46,6 +46,7 @@ dependencies {
     implementation(libs.converter.gson)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.play.services.location)
+    implementation(libs.play.services.location.v2101)
 
 
     testImplementation(libs.junit)
