@@ -167,7 +167,7 @@
                         android:textSize="24sp" />
 
                     <TextView
-                        android:id="@+id/tv_current_time"
+                        android:id="@+id/tv_time_remaining"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
@@ -211,7 +211,7 @@
                         android:textSize="24sp" />
 
                     <TextView
-                        android:id="@+id/tv_time_remaining"
+                        android:id="@+id/tv_next_prayer_time"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
