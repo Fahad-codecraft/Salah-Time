@@ -8,11 +8,18 @@ import android.os.*
 import android.util.Log
 import android.widget.Button
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
+import androidx.lifecycle.lifecycleScope
+import androidx.room.Room
 import com.example.salahtime.databinding.ActivityMainBinding
 import com.google.android.gms.location.*
+import com.google.gson.Gson
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import retrofit2.*
 import retrofit2.converter.gson.GsonConverterFactory
 import java.text.SimpleDateFormat
@@ -24,6 +31,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var locationCallback: LocationCallback
     private lateinit var locationTextView: TextView
     private lateinit var dateTextView: TextView
+    private lateinit var db: SalahDatabase
 
     private val LOCATION_PERMISSION_REQUEST = 1001
 
@@ -35,30 +43,38 @@ class MainActivity : AppCompatActivity() {
         ActivityMainBinding.inflate(layoutInflater)
     }
 
-    private var countdownHandler: Handler? = null
-    private var countdownRunnable: Runnable? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(binding.root)
 
+        db = Room.databaseBuilder(applicationContext, SalahDatabase::class.java, "salah_db")
+            .fallbackToDestructiveMigration(false) // <- Add this line
+            .build()
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+
         locationTextView = findViewById(R.id.tv_location)
         dateTextView = findViewById(R.id.tv_date)
 
-        val fetchButton: Button = findViewById(R.id.myButton)
-        fetchButton.setOnClickListener {
+        findViewById<Button>(R.id.myButton).setOnClickListener {
             checkLocationPermissionAndFetch()
         }
 
         dateTextView.text = formatDateForDisplay(currentDate)
+        dateTextView.setOnClickListener { showDatePicker() }
 
-        dateTextView.setOnClickListener {
-            showDatePicker()
+        lifecycleScope.launch {
+            val (lat, lon) = loadLastLocation(this@MainActivity)
+            if (!lat.isNullOrEmpty() && !lon.isNullOrEmpty()) {
+                currentLatitude = lat
+                currentLongitude = lon
+                locationTextView.text = "Lat: $lat, Lon: $lon"
+                fetchSalahData()
+            } else {
+                checkLocationPermissionAndFetch()
+            }
         }
-
-        checkLocationPermissionAndFetch()
     }
 
     private fun checkLocationPermissionAndFetch() {
@@ -122,64 +138,166 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateLocation(location: Location) {
-        val lat = location.latitude
-        val lon = location.longitude
-        currentLatitude = lat.toString()
-        currentLongitude = lon.toString()
+        val lat = location.latitude.toString()
+        val lon = location.longitude.toString()
+        currentLatitude = lat
+        currentLongitude = lon
         locationTextView.text = "Lat: $lat, Lon: $lon"
-        fetchSalahData()
+
+        lifecycleScope.launch {
+            saveLocation(lat, lon, this@MainActivity)
+            fetchSalahData()
+        }
     }
 
     private fun fetchSalahData() {
-        if (currentLatitude == null || currentLongitude == null) {
-            Log.e("fetch", "Location not ready")
-            return
-        }
+        if (currentLatitude == null || currentLongitude == null) return
 
+        val lat = currentLatitude!!
+        val lon = currentLongitude!!
+
+        lifecycleScope.launch {
+            val sevenDaysAgo = System.currentTimeMillis() - (7 * 24 * 60 * 60 * 1000)
+            val cached = db.salahDao().getValidSalahData(currentDate, lat, lon, sevenDaysAgo)
+
+            if (cached != null) {
+                val responseBody = Gson().fromJson(cached.dataJson, SalahTimeApp::class.java)
+                displaySalahData(responseBody)
+            } else if (isNetworkAvailable(this@MainActivity)) {
+                fetchSalahDataForDateAndCache(lat, lon, currentDate)
+            } else {
+                binding.tvCurrentPrayer.text = "No data"
+                binding.tvCurrentPrayerTime.text = ""
+                Toast.makeText(
+                    this@MainActivity,
+                    "No cached data available. Connect to the internet.",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
+    }
+
+    private suspend fun fetchSalahDataForDateAndCache(lat: String, lon: String, date: String) {
         val retrofit = Retrofit.Builder()
             .baseUrl("https://api.aladhan.com/v1/")
             .addConverterFactory(GsonConverterFactory.create())
             .build()
 
         val api = retrofit.create(ApiInterface::class.java)
-        val call = api.getSalahTime(currentDate, currentLatitude!!, currentLongitude!!, 4)
 
-        call.enqueue(object : Callback<SalahTimeApp> {
-            override fun onResponse(call: Call<SalahTimeApp>, response: Response<SalahTimeApp>) {
-                val responseBody = response.body()
-                if (response.isSuccessful && responseBody != null) {
-                    val hijriDay = responseBody.data.date.hijri.day
-                    val hijriMonth = responseBody.data.date.hijri.month.en
-                    val hijriYear = responseBody.data.date.hijri.year
-                    val timings = responseBody.data.timings
+        withContext(Dispatchers.IO) {
+            try {
+                val response = api.getSalahTime(date, lat, lon, 4).execute()
 
-                    binding.tvHijri.text = "$hijriDay $hijriMonth $hijriYear"
-                    binding.tvFajr.text = timings.Fajr
-                    binding.tvSunrise.text = timings.Sunrise
-                    binding.tvDhuhr.text = timings.Dhuhr
-                    binding.tvAsr.text = timings.Asr
-                    binding.tvSunset.text = timings.Sunset
-                    binding.tvMaghrib.text = timings.Maghrib
-                    binding.tvIsha.text = timings.Isha
+                if (response.isSuccessful && response.body() != null) {
+                    val body = response.body()!!
+                    val json = Gson().toJson(body)
 
-                    val prayerTimes = parsePrayerTimes(timings)
-                    val (currentPrayer, nextPrayer, nextPrayerTimeCal) = getCurrentPrayerAndNext(prayerTimes)
+                    db.salahDao().insertSalahData(
+                        CachedSalahData(
+                            date = date,
+                            latitude = lat,
+                            longitude = lon,
+                            dataJson = json,
+                            timestamp = System.currentTimeMillis()
+                        )
+                    )
 
-                    binding.tvCurrentPrayer.text = currentPrayer
-                    binding.tvNextPrayer.text = nextPrayer
-                    binding.tvNextPrayerTime.text = SimpleDateFormat("hh:mm a", Locale.getDefault()).format(nextPrayerTimeCal.time)
+                    Log.d("CACHE", "✅ Fetched and cached data for $date")
 
-                    startCountdown(nextPrayerTimeCal)
+                    withContext(Dispatchers.Main) {
+                        displaySalahData(body)
+                    }
                 } else {
-                    Log.e("API", "API call failed: ${response.message()}")
+                    Log.e("API", "❌ Failed to fetch Salah data: ${response.message()}")
                 }
+            } catch (e: Exception) {
+                Log.e("API", "❌ Exception: ${e.localizedMessage}")
+            }
+        }
+    }
+
+    private suspend fun fetchFromApiAndCache(lat: String, lon: String) {
+        val retrofit = Retrofit.Builder()
+            .baseUrl("https://api.aladhan.com/v1/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+
+        val api = retrofit.create(ApiInterface::class.java)
+
+        withContext(Dispatchers.IO) {
+            val sdf = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault())
+            val calendar = Calendar.getInstance()
+
+            for (i in 0 until 7) {
+                val date = sdf.format(calendar.time)
+                Log.d("CACHE", "⏳ Fetching Salah data for $date at [$lat, $lon]")
+
+                try {
+                    val response = api.getSalahTime(date, lat, lon, 4).execute()
+
+                    if (response.isSuccessful && response.body() != null) {
+                        val body = response.body()!!
+                        val json = Gson().toJson(body)
+
+                        db.salahDao().insertSalahData(
+                            CachedSalahData(
+                                date = date,
+                                latitude = lat,
+                                longitude = lon,
+                                dataJson = json,
+                                timestamp = System.currentTimeMillis()
+                            )
+                        )
+
+                        Log.d("CACHE", "✅ Cached Salah data for $date at [$lat, $lon]")
+
+                        withContext(Dispatchers.Main) {
+                            if (i == 0) { // Show only today’s data
+                                displaySalahData(body)
+                            }
+                        }
+                    } else {
+                        Log.e("API", "❌ Failed to fetch data for $date: ${response.message()}")
+                    }
+
+                } catch (e: Exception) {
+                    Log.e("API", "❌ Network error on $date: ${e.localizedMessage}")
+                }
+
+                calendar.add(Calendar.DATE, 1) // Move to next day
             }
 
-            override fun onFailure(call: Call<SalahTimeApp>, t: Throwable) {
-                Log.e("API", "Network error: ${t.localizedMessage}")
-            }
-        })
+            Log.d("CACHE", "🎉 Finished caching Salah data for 7 days")
+        }
     }
+
+    private fun displaySalahData(responseBody: SalahTimeApp) {
+        val hijriDay = responseBody.data.date.hijri.day
+        val hijriMonth = responseBody.data.date.hijri.month.en
+        val hijriYear = responseBody.data.date.hijri.year
+        val timings = responseBody.data.timings
+
+        binding.tvHijri.text = "$hijriDay $hijriMonth $hijriYear"
+        binding.tvFajr.text = timings.Fajr
+        binding.tvSunrise.text = timings.Sunrise
+        binding.tvDhuhr.text = timings.Dhuhr
+        binding.tvAsr.text = timings.Asr
+        binding.tvSunset.text = timings.Sunset
+        binding.tvMaghrib.text = timings.Maghrib
+        binding.tvIsha.text = timings.Isha
+
+        val prayerTimes = parsePrayerTimes(timings)
+        val prayerInfo = getCurrentPrayerAndNext(prayerTimes)
+
+        val timeFormat = SimpleDateFormat("hh:mm a", Locale.getDefault())
+
+        binding.tvCurrentPrayer.text = prayerInfo.currentPrayer
+        binding.tvCurrentPrayerTime.text = timeFormat.format(prayerInfo.currentPrayerTime.time)
+        binding.tvNextPrayer.text = prayerInfo.nextPrayer
+        binding.tvNextPrayerTime.text = timeFormat.format(prayerInfo.nextPrayerTime.time)
+    }
+
 
     private fun parsePrayerTimes(timings: Timings): List<Pair<String, String>> {
         return listOf(
@@ -191,7 +309,14 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
-    private fun getCurrentPrayerAndNext(prayerTimes: List<Pair<String, String>>): Triple<String, String, Calendar> {
+    data class PrayerInfo(
+        val currentPrayer: String,
+        val currentPrayerTime: Calendar,
+        val nextPrayer: String,
+        val nextPrayerTime: Calendar
+    )
+
+    private fun getCurrentPrayerAndNext(prayerTimes: List<Pair<String, String>>): PrayerInfo {
         val now = Calendar.getInstance()
         val formatter = SimpleDateFormat("HH:mm", Locale.getDefault())
         val today = Calendar.getInstance()
@@ -205,14 +330,36 @@ class MainActivity : AppCompatActivity() {
                 prayerCal.set(Calendar.YEAR, today.get(Calendar.YEAR))
                 prayerCal.set(Calendar.MONTH, today.get(Calendar.MONTH))
                 prayerCal.set(Calendar.DAY_OF_MONTH, today.get(Calendar.DAY_OF_MONTH))
+
                 if (now.before(prayerCal)) {
-                    val currentPrayer = if (i == 0) "None" else prayerTimes[i - 1].first
-                    val nextPrayer = prayerTimes[i].first
-                    return Triple(currentPrayer, nextPrayer, prayerCal)
+                    if (i == 0) {
+                        // Before Fajr
+                        return PrayerInfo("None", now, prayerTimes[i].first, prayerCal)
+                    } else {
+                        // Between two prayers
+                        val currentPrayerTime = today.clone() as Calendar
+                        val previousTime = prayerTimes[i - 1].second.split(" ")[0]
+                        val parsedPreviousTime = formatter.parse(previousTime)
+
+                        if (parsedPreviousTime != null) {
+                            currentPrayerTime.time = parsedPreviousTime
+                            currentPrayerTime.set(Calendar.YEAR, today.get(Calendar.YEAR))
+                            currentPrayerTime.set(Calendar.MONTH, today.get(Calendar.MONTH))
+                            currentPrayerTime.set(Calendar.DAY_OF_MONTH, today.get(Calendar.DAY_OF_MONTH))
+                        }
+
+                        return PrayerInfo(
+                            currentPrayer = prayerTimes[i - 1].first,
+                            currentPrayerTime = currentPrayerTime,
+                            nextPrayer = prayerTimes[i].first,
+                            nextPrayerTime = prayerCal
+                        )
+                    }
                 }
             }
         }
 
+        // After Isha, next is tomorrow's Fajr
         val fajrCal = today.clone() as Calendar
         val fajrTime = formatter.parse(prayerTimes[0].second.split(" ")[0])
         if (fajrTime != null) {
@@ -220,39 +367,17 @@ class MainActivity : AppCompatActivity() {
             fajrCal.add(Calendar.DAY_OF_MONTH, 1)
         }
 
-        return Triple("Isha", "Fajr", fajrCal)
-    }
-
-    private fun startCountdown(targetTime: Calendar) {
-        countdownHandler?.removeCallbacks(countdownRunnable ?: Runnable { })
-
-        countdownHandler = Handler(Looper.getMainLooper())
-        countdownRunnable = object : Runnable {
-            override fun run() {
-                val now = Calendar.getInstance()
-                val diff = targetTime.timeInMillis - now.timeInMillis
-
-                if (diff > 0) {
-                    binding.tvTimeRemaining.text = formatDuration(diff)
-                    countdownHandler?.postDelayed(this, 1000)
-                } else {
-                    binding.tvTimeRemaining.text = "Now"
-                    fetchSalahData()
-                }
-            }
+        val ishaTime = prayerTimes.last().second.split(" ")[0]
+        val ishaCal = today.clone() as Calendar
+        val parsedIsha = formatter.parse(ishaTime)
+        if (parsedIsha != null) {
+            ishaCal.time = parsedIsha
         }
 
-        countdownHandler?.post(countdownRunnable!!)
+        return PrayerInfo("Isha", ishaCal, "Fajr", fajrCal)
     }
 
-    private fun formatDuration(millis: Long): String {
-        val seconds = millis / 1000
-        val minutes = (seconds / 60) % 60
-        val hours = seconds / 3600
-        val secs = seconds % 60
 
-        return String.format("in %02dh %02dm %02ds", hours, minutes, secs)
-    }
 
     private fun showDatePicker() {
         val parts = currentDate.split("-")
@@ -286,7 +411,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
-        countdownHandler?.removeCallbacks(countdownRunnable ?: Runnable { })
         super.onDestroy()
     }
 }
