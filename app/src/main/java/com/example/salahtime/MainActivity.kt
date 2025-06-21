@@ -12,6 +12,7 @@ import android.widget.TextView
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
+import com.example.salahtime.databinding.ActivityMainBinding
 import com.google.android.gms.location.*
 import retrofit2.*
 import retrofit2.converter.gson.GsonConverterFactory
@@ -31,10 +32,15 @@ class MainActivity : AppCompatActivity() {
     private var currentLongitude: String? = null
     private var currentDate: String = getTodayDate()
 
+
+    private val binding: ActivityMainBinding by lazy {
+        ActivityMainBinding.inflate(layoutInflater)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContentView(R.layout.activity_main)
+        setContentView(binding.root)
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
         locationTextView = findViewById(R.id.tv_location)
@@ -165,8 +171,24 @@ class MainActivity : AppCompatActivity() {
             override fun onResponse(call: Call<SalahTimeApp>, response: Response<SalahTimeApp>) {
                 val responseBody = response.body()
                 if (response.isSuccessful && responseBody != null) {
-                    val time = responseBody.data.timings.Fajr
-                    Log.d("API", "Fajr time on $currentDate: $time")
+                    val hijriDay = responseBody.data.date.hijri.day
+                    val hijriMonth = responseBody.data.date.hijri.month.en
+                    val hijriYear = responseBody.data.date.hijri.year
+                    val fajrTime = responseBody.data.timings.Fajr
+                    val sunriseTime = responseBody.data.timings.Sunrise
+                    val dhuhrTime = responseBody.data.timings.Dhuhr
+                    val asrTime = responseBody.data.timings.Asr
+                    val sunsetTime = responseBody.data.timings.Sunset
+                    val maghribTime = responseBody.data.timings.Maghrib
+                    val ishaTime = responseBody.data.timings.Isha
+                    binding.tvHijri.text ="$hijriDay $hijriMonth $hijriYear"
+                    binding.tvFajr.text = fajrTime
+                    binding.tvSunrise.text = sunriseTime
+                    binding.tvDhuhr.text = dhuhrTime
+                    binding.tvAsr.text = asrTime
+                    binding.tvSunset.text = sunsetTime
+                    binding.tvMaghrib.text = maghribTime
+                    binding.tvIsha.text = ishaTime
                 } else {
                     Log.e("API", "API call failed: ${response.message()}")
                 }
