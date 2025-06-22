@@ -18,6 +18,7 @@ import com.example.salahtime.databinding.ActivityMainBinding
 import com.google.android.gms.location.*
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import retrofit2.*
@@ -140,15 +141,24 @@ class MainActivity : AppCompatActivity() {
     private fun updateLocation(location: Location) {
         val lat = location.latitude.toString()
         val lon = location.longitude.toString()
-        currentLatitude = lat
-        currentLongitude = lon
-        locationTextView.text = "Lat: $lat, Lon: $lon"
 
-        lifecycleScope.launch {
-            saveLocation(lat, lon, this@MainActivity)
-            fetchSalahData()
+        if (lat != currentLatitude || lon != currentLongitude) {
+            currentLatitude = lat
+            currentLongitude = lon
+            locationTextView.text = "Lat: $lat, Lon: $lon"
+
+            lifecycleScope.launch {
+                saveLocation(lat, lon, this@MainActivity)
+                fetchSevenDaysAndCache(lat, lon, getTodayDate()) // Fetch for today and next 6 days
+            }
+        } else {
+            locationTextView.text = "Lat: $lat, Lon: $lon"
+            lifecycleScope.launch {
+                fetchSalahData()
+            }
         }
     }
+
 
     private fun fetchSalahData() {
         if (currentLatitude == null || currentLongitude == null) return
@@ -164,7 +174,8 @@ class MainActivity : AppCompatActivity() {
                 val responseBody = Gson().fromJson(cached.dataJson, SalahTimeApp::class.java)
                 displaySalahData(responseBody)
             } else if (isNetworkAvailable(this@MainActivity)) {
-                fetchSalahDataForDateAndCache(lat, lon, currentDate)
+                // Fetch 7 days from selected date and cache them with delay
+                fetchSevenDaysAndCache(lat, lon, currentDate)
             } else {
                 binding.tvCurrentPrayer.text = "No data"
                 binding.tvCurrentPrayerTime.text = ""
@@ -177,100 +188,56 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private suspend fun fetchSalahDataForDateAndCache(lat: String, lon: String, date: String) {
+
+    private suspend fun fetchSevenDaysAndCache(lat: String, lon: String, startDate: String) {
         val retrofit = Retrofit.Builder()
             .baseUrl("https://api.aladhan.com/v1/")
             .addConverterFactory(GsonConverterFactory.create())
             .build()
 
         val api = retrofit.create(ApiInterface::class.java)
+        val sdf = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault())
+        val calendar = Calendar.getInstance()
+        calendar.time = sdf.parse(startDate)!!
 
         withContext(Dispatchers.IO) {
-            try {
-                val response = api.getSalahTime(date, lat, lon, 4).execute()
-
-                if (response.isSuccessful && response.body() != null) {
-                    val body = response.body()!!
-                    val json = Gson().toJson(body)
-
-                    db.salahDao().insertSalahData(
-                        CachedSalahData(
-                            date = date,
-                            latitude = lat,
-                            longitude = lon,
-                            dataJson = json,
-                            timestamp = System.currentTimeMillis()
-                        )
-                    )
-
-                    Log.d("CACHE", "✅ Fetched and cached data for $date")
-
-                    withContext(Dispatchers.Main) {
-                        displaySalahData(body)
-                    }
-                } else {
-                    Log.e("API", "❌ Failed to fetch Salah data: ${response.message()}")
-                }
-            } catch (e: Exception) {
-                Log.e("API", "❌ Exception: ${e.localizedMessage}")
-            }
-        }
-    }
-
-    private suspend fun fetchFromApiAndCache(lat: String, lon: String) {
-        val retrofit = Retrofit.Builder()
-            .baseUrl("https://api.aladhan.com/v1/")
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-
-        val api = retrofit.create(ApiInterface::class.java)
-
-        withContext(Dispatchers.IO) {
-            val sdf = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault())
-            val calendar = Calendar.getInstance()
-
             for (i in 0 until 7) {
                 val date = sdf.format(calendar.time)
-                Log.d("CACHE", "⏳ Fetching Salah data for $date at [$lat, $lon]")
-
                 try {
-                    val response = api.getSalahTime(date, lat, lon, 4).execute()
-
-                    if (response.isSuccessful && response.body() != null) {
-                        val body = response.body()!!
-                        val json = Gson().toJson(body)
-
-                        db.salahDao().insertSalahData(
-                            CachedSalahData(
-                                date = date,
-                                latitude = lat,
-                                longitude = lon,
-                                dataJson = json,
-                                timestamp = System.currentTimeMillis()
-                            )
-                        )
-
-                        Log.d("CACHE", "✅ Cached Salah data for $date at [$lat, $lon]")
-
-                        withContext(Dispatchers.Main) {
-                            if (i == 0) { // Show only today’s data
-                                displaySalahData(body)
-                            }
-                        }
+                    val cached = db.salahDao().getValidSalahData(date, lat, lon, System.currentTimeMillis() - (7 * 24 * 60 * 60 * 1000))
+                    if (cached != null) {
+                        Log.d("CACHE", "✅ Already cached for $date")
                     } else {
-                        Log.e("API", "❌ Failed to fetch data for $date: ${response.message()}")
+                        val response = api.getSalahTime(date, lat, lon, 4).execute()
+                        if (response.isSuccessful && response.body() != null) {
+                            val json = Gson().toJson(response.body())
+                            db.salahDao().insertSalahData(
+                                CachedSalahData(
+                                    date = date,
+                                    latitude = lat,
+                                    longitude = lon,
+                                    dataJson = json,
+                                    timestamp = System.currentTimeMillis()
+                                )
+                            )
+                            Log.d("CACHE", "✅ Cached $date")
+                        } else {
+                            Log.e("API", "❌ Failed $date: ${response.message()}")
+                        }
+                        delay(2000) // 2-second delay
                     }
-
                 } catch (e: Exception) {
-                    Log.e("API", "❌ Network error on $date: ${e.localizedMessage}")
+                    Log.e("CACHE", "❌ Exception for $date: ${e.localizedMessage}")
                 }
-
-                calendar.add(Calendar.DATE, 1) // Move to next day
+                calendar.add(Calendar.DAY_OF_MONTH, 1)
             }
 
-            Log.d("CACHE", "🎉 Finished caching Salah data for 7 days")
+            withContext(Dispatchers.Main) {
+                fetchSalahData() // Load current date after cache
+            }
         }
     }
+
 
     private fun displaySalahData(responseBody: SalahTimeApp) {
         val hijriDay = responseBody.data.date.hijri.day
@@ -388,11 +355,19 @@ class MainActivity : AppCompatActivity() {
         val picker = DatePickerDialog(this, { _, selectedYear, selectedMonth, selectedDay ->
             currentDate = String.format("%02d-%02d-%04d", selectedDay, selectedMonth + 1, selectedYear)
             dateTextView.text = formatDateForDisplay(currentDate)
-            fetchSalahData()
+
+            lifecycleScope.launch {
+                if (currentLatitude != null && currentLongitude != null && isNetworkAvailable(this@MainActivity)) {
+                    fetchSevenDaysAndCache(currentLatitude!!, currentLongitude!!, currentDate)
+                } else {
+                    fetchSalahData()
+                }
+            }
         }, year, month, day)
 
         picker.show()
     }
+
 
     private fun getTodayDate(): String {
         val sdf = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault())
