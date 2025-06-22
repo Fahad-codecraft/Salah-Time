@@ -11,6 +11,7 @@ interface ApiInterface {
         @Path("date") date: String,
         @Query("latitude") latitude:String,
         @Query("longitude") longitude:String,
-        @Query("method") method:Int
+        @Query("method") method:Int,
+        @Query("midnightMode") midnightMode:Int
     ) :Call<SalahTimeApp>
 }

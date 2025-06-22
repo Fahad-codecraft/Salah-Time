@@ -2,14 +2,17 @@ package com.example.salahtime
 
 import android.Manifest
 import android.app.DatePickerDialog
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.Location
 import android.os.*
 import android.util.Log
+import android.view.View
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.lifecycle.lifecycleScope
@@ -34,6 +37,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var dateTextView: TextView
     private lateinit var db: SalahDatabase
 
+    // Notification components
+    private lateinit var permissionHelper: PermissionHelper
+    private lateinit var notificationScheduler: PrayerNotificationScheduler
+
     private val LOCATION_PERMISSION_REQUEST = 1001
 
     private var currentLatitude: String? = null
@@ -44,26 +51,38 @@ class MainActivity : AppCompatActivity() {
         ActivityMainBinding.inflate(layoutInflater)
     }
 
-
     override fun onCreate(savedInstanceState: Bundle?) {
+
+
+
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(binding.root)
 
+
+
         db = Room.databaseBuilder(applicationContext, SalahDatabase::class.java, "salah_db")
-            .fallbackToDestructiveMigration(false) // <- Add this line
+            .fallbackToDestructiveMigration(false)
             .build()
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+
+        // Initialize notification components
+        permissionHelper = PermissionHelper(this)
+        notificationScheduler = PrayerNotificationScheduler(this)
 
         locationTextView = findViewById(R.id.tv_location)
         dateTextView = findViewById(R.id.tv_date)
 
-        findViewById<Button>(R.id.myButton).setOnClickListener {
+        findViewById<Button>(R.id.btn_update_data).setOnClickListener {
             checkLocationPermissionAndFetch()
         }
 
+
         dateTextView.text = formatDateForDisplay(currentDate)
         dateTextView.setOnClickListener { showDatePicker() }
+
+        // Check and request notification permissions
+        checkNotificationPermissions()
 
         lifecycleScope.launch {
             val (lat, lon) = loadLastLocation(this@MainActivity)
@@ -78,6 +97,70 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun checkNotificationPermissions() {
+        if (!permissionHelper.hasNotificationPermission()) {
+            showNotificationPermissionDialog()
+        } else {
+            checkExactAlarmPermission()
+        }
+    }
+
+    private fun showNotificationPermissionDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("Enable Notifications")
+            .setMessage("This app needs notification permission to send prayer time reminders. Would you like to enable notifications?")
+            .setPositiveButton("Enable") { _, _ ->
+                permissionHelper.requestNotificationPermission(this)
+            }
+            .setNegativeButton("Skip") { _, _ ->
+                Toast.makeText(this, "Notifications disabled. You won't receive prayer reminders.", Toast.LENGTH_LONG).show()
+            }
+            .setCancelable(false)
+            .show()
+    }
+
+    private fun checkExactAlarmPermission() {
+        if (!notificationScheduler.hasExactAlarmPermission()) {
+            showExactAlarmPermissionDialog()
+        }
+    }
+
+    private fun showExactAlarmPermissionDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("Enable Exact Alarms")
+            .setMessage("For precise prayer time notifications, this app needs permission to schedule exact alarms. Would you like to enable this?")
+            .setPositiveButton("Enable") { _, _ ->
+                val intent = notificationScheduler.requestExactAlarmPermission()
+                if (intent != null) {
+                    startActivity(intent)
+                }
+            }
+            .setNegativeButton("Skip") { _, _ ->
+                Toast.makeText(this, "Exact alarms disabled. Notifications may be delayed.", Toast.LENGTH_LONG).show()
+            }
+            .show()
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+
+        when (requestCode) {
+            LOCATION_PERMISSION_REQUEST -> {
+                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    getLastLocation()
+                }
+            }
+            PermissionHelper.NOTIFICATION_PERMISSION_REQUEST -> {
+                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    Toast.makeText(this, "Notification permission granted", Toast.LENGTH_SHORT).show()
+                    checkExactAlarmPermission()
+                } else {
+                    Toast.makeText(this, "Notification permission denied", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
     private fun checkLocationPermissionAndFetch() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             requestNewLocationData()
@@ -87,13 +170,6 @@ class MainActivity : AppCompatActivity() {
                 arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
                 LOCATION_PERMISSION_REQUEST
             )
-        }
-    }
-
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == LOCATION_PERMISSION_REQUEST && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            getLastLocation()
         }
     }
 
@@ -149,7 +225,7 @@ class MainActivity : AppCompatActivity() {
 
             lifecycleScope.launch {
                 saveLocation(lat, lon, this@MainActivity)
-                fetchSevenDaysAndCache(lat, lon, getTodayDate()) // Fetch for today and next 6 days
+                fetchSevenDaysAndCache(lat, lon, getTodayDate())
             }
         } else {
             locationTextView.text = "Lat: $lat, Lon: $lon"
@@ -158,7 +234,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
-
 
     private fun fetchSalahData() {
         if (currentLatitude == null || currentLongitude == null) return
@@ -173,8 +248,15 @@ class MainActivity : AppCompatActivity() {
             if (cached != null) {
                 val responseBody = Gson().fromJson(cached.dataJson, SalahTimeApp::class.java)
                 displaySalahData(responseBody)
+
+                // Only schedule notifications if we're viewing today's data
+                if (currentDate == getTodayDate()) {
+                    scheduleNotificationsForCurrentData(responseBody.data.timings, getTodayDate())
+                } else {
+                    // If viewing a different date, still schedule notifications for today
+                    scheduleNotificationsForToday()
+                }
             } else if (isNetworkAvailable(this@MainActivity)) {
-                // Fetch 7 days from selected date and cache them with delay
                 fetchSevenDaysAndCache(lat, lon, currentDate)
             } else {
                 binding.tvCurrentPrayer.text = "No data"
@@ -188,6 +270,41 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun scheduleNotificationsForToday() {
+        if (currentLatitude == null || currentLongitude == null) return
+
+        val lat = currentLatitude!!
+        val lon = currentLongitude!!
+        val todayDate = getTodayDate()
+
+        lifecycleScope.launch {
+            val sevenDaysAgo = System.currentTimeMillis() - (7 * 24 * 60 * 60 * 1000)
+            val cached = db.salahDao().getValidSalahData(todayDate, lat, lon, sevenDaysAgo)
+
+            if (cached != null) {
+                val responseBody = Gson().fromJson(cached.dataJson, SalahTimeApp::class.java)
+                scheduleNotificationsForCurrentData(responseBody.data.timings, todayDate)
+                Log.d("MainActivity", "Scheduled notifications for today: $todayDate")
+            } else {
+                Log.d("MainActivity", "No cached data for today: $todayDate")
+            }
+        }
+    }
+
+    private fun scheduleNotificationsForCurrentData(timings: Timings, deviceCurrentDate: String) {
+        if (permissionHelper.hasNotificationPermission()) {
+            // Always schedule notifications for the device's current date, not the selected date
+            notificationScheduler.scheduleAllPrayerNotifications(timings, deviceCurrentDate)
+
+            // Show upcoming notifications info
+            val upcoming = notificationScheduler.getUpcomingNotifications(timings, deviceCurrentDate)
+            if (upcoming.isNotEmpty()) {
+                val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+                val nextEvent = upcoming.first()
+                Log.d("MainActivity", "Next notification: ${nextEvent.prayerName} ${nextEvent.eventType} at ${timeFormat.format(nextEvent.time.time)}")
+            }
+        }
+    }
 
     private suspend fun fetchSevenDaysAndCache(lat: String, lon: String, startDate: String) {
         val retrofit = Retrofit.Builder()
@@ -200,15 +317,17 @@ class MainActivity : AppCompatActivity() {
         val calendar = Calendar.getInstance()
         calendar.time = sdf.parse(startDate)!!
 
+        withContext(Dispatchers.Main) {
+            binding.progressBar.visibility = View.VISIBLE
+        }
+
         withContext(Dispatchers.IO) {
             for (i in 0 until 7) {
                 val date = sdf.format(calendar.time)
                 try {
                     val cached = db.salahDao().getValidSalahData(date, lat, lon, System.currentTimeMillis() - (7 * 24 * 60 * 60 * 1000))
-                    if (cached != null) {
-                        Log.d("CACHE", "✅ Already cached for $date")
-                    } else {
-                        val response = api.getSalahTime(date, lat, lon, 4).execute()
+                    if (cached == null) {
+                        val response = api.getSalahTime(date, lat, lon, 4, 1).execute()
                         if (response.isSuccessful && response.body() != null) {
                             val json = Gson().toJson(response.body())
                             db.salahDao().insertSalahData(
@@ -224,7 +343,9 @@ class MainActivity : AppCompatActivity() {
                         } else {
                             Log.e("API", "❌ Failed $date: ${response.message()}")
                         }
-                        delay(2000) // 2-second delay
+                        delay(2000)
+                    } else {
+                        Log.d("CACHE", "✅ Already cached for $date")
                     }
                 } catch (e: Exception) {
                     Log.e("CACHE", "❌ Exception for $date: ${e.localizedMessage}")
@@ -233,11 +354,11 @@ class MainActivity : AppCompatActivity() {
             }
 
             withContext(Dispatchers.Main) {
-                fetchSalahData() // Load current date after cache
+                binding.progressBar.visibility = View.GONE
+                fetchSalahData()
             }
         }
     }
-
 
     private fun displaySalahData(responseBody: SalahTimeApp) {
         val hijriDay = responseBody.data.date.hijri.day
@@ -253,6 +374,7 @@ class MainActivity : AppCompatActivity() {
         binding.tvSunset.text = timings.Sunset
         binding.tvMaghrib.text = timings.Maghrib
         binding.tvIsha.text = timings.Isha
+        binding.tvMidnight.text = timings.Midnight
 
         val prayerTimes = parsePrayerTimes(timings)
         val prayerInfo = getCurrentPrayerAndNext(prayerTimes)
@@ -264,7 +386,6 @@ class MainActivity : AppCompatActivity() {
         binding.tvNextPrayer.text = prayerInfo.nextPrayer
         binding.tvNextPrayerTime.text = timeFormat.format(prayerInfo.nextPrayerTime.time)
     }
-
 
     private fun parsePrayerTimes(timings: Timings): List<Pair<String, String>> {
         return listOf(
@@ -300,10 +421,8 @@ class MainActivity : AppCompatActivity() {
 
                 if (now.before(prayerCal)) {
                     if (i == 0) {
-                        // Before Fajr
                         return PrayerInfo("None", now, prayerTimes[i].first, prayerCal)
                     } else {
-                        // Between two prayers
                         val currentPrayerTime = today.clone() as Calendar
                         val previousTime = prayerTimes[i - 1].second.split(" ")[0]
                         val parsedPreviousTime = formatter.parse(previousTime)
@@ -326,7 +445,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // After Isha, next is tomorrow's Fajr
         val fajrCal = today.clone() as Calendar
         val fajrTime = formatter.parse(prayerTimes[0].second.split(" ")[0])
         if (fajrTime != null) {
@@ -343,8 +461,6 @@ class MainActivity : AppCompatActivity() {
 
         return PrayerInfo("Isha", ishaCal, "Fajr", fajrCal)
     }
-
-
 
     private fun showDatePicker() {
         val parts = currentDate.split("-")
@@ -368,7 +484,6 @@ class MainActivity : AppCompatActivity() {
         picker.show()
     }
 
-
     private fun getTodayDate(): String {
         val sdf = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault())
         return sdf.format(Date())
@@ -389,3 +504,4 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
     }
 }
+

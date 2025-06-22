@@ -26,6 +26,7 @@
     <color name="sunset_color">#F97316</color>
     <color name="maghrib_color">#8B5CF6</color>
     <color name="isha_color">#06B6D4</color>
+    <color name="midnight_color">#4F46E5</color>
 
     <!-- Border and Divider Colors -->
     <color name="border_color">#30363D</color>

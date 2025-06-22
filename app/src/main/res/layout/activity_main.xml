@@ -78,12 +78,26 @@
                     android:layout_marginTop="10dp"
                     >
                     <Button
-                        android:id="@+id/myButton"
+                        android:id="@+id/btn_update_data"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Fetch Location"
+                        android:text="Update Data"
                         android:fontFamily="@font/poppins_semibold"
+                        android:backgroundTint="@color/accent_color"
+                        android:textColor="@color/primary_text"
+                        android:paddingHorizontal="24dp"
+                        android:paddingVertical="12dp"
+                        app:cornerRadius="12dp"
                         />
+
+                    <ProgressBar
+                        android:id="@+id/progressBar"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:visibility="gone"
+                        style="@android:style/Widget.DeviceDefault.Light.ProgressBar.Large"
+                        android:layout_centerInParent="true"/>
                 </LinearLayout>
 
                 <!-- Date Section -->
@@ -495,7 +509,7 @@
                             android:layout_height="24dp"
                             android:layout_marginEnd="12dp"
                             android:src="@drawable/ic_isha"
-                            android:tint="@color/isha_color" />
+                            app:tint="@color/isha_color" />
 
                         <TextView
                             android:layout_width="wrap_content"
@@ -512,6 +526,43 @@
                         android:layout_height="wrap_content"
                         android:fontFamily="@font/poppins_semibold"
                         android:text="08:10 PM"
+                        android:textColor="@color/time_text"
+                        android:textSize="16sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/layout_midnight"
+                    style="@style/PrayerTimeRow"
+                    android:background="@drawable/prayer_row_background">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="horizontal">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:layout_marginEnd="12dp"
+                            android:src="@drawable/ic_midnight"
+                            app:tint="@color/midnight_color" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/poppins_medium"
+                            android:text="Midnight"
+                            android:textColor="@color/primary_text"
+                            android:textSize="16sp" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/tv_midnight"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/poppins_semibold"
+                        android:text="11:10 PM"
                         android:textColor="@color/time_text"
                         android:textSize="16sp" />
                 </LinearLayout>

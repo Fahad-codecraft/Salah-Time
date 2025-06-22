@@ -57,6 +57,8 @@ dependencies {
     implementation ("androidx.lifecycle:lifecycle-livedata-ktx:2.9.1")
     implementation ("androidx.lifecycle:lifecycle-viewmodel-ktx:2.9.1")
     implementation ("androidx.datastore:datastore-preferences:1.1.7")
+    implementation ("androidx.core:core-ktx:1.12.0")
+    implementation ("androidx.work:work-runtime-ktx:2.10.2")// Optional for background work
 
 
     testImplementation(libs.junit)
