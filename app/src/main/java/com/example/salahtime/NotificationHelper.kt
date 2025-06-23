@@ -56,7 +56,7 @@ class NotificationHelper(private val context: Context) {
         )
         
         val notification = NotificationCompat.Builder(context, PRAYER_CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_notification) // You'll need to add this icon
+            .setSmallIcon(R.drawable.ic_asr) // You'll need to add this icon
             .setContentTitle(title)
             .setContentText(message)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
