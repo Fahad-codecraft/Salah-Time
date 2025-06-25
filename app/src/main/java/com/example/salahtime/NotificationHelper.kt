@@ -42,7 +42,6 @@ class NotificationHelper(private val context: Context) {
         notificationId: Int,
         title: String,
         message: String,
-        prayerName: String
     ) {
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
@@ -75,14 +74,14 @@ class NotificationHelper(private val context: Context) {
         }
     }
     
-    fun cancelNotification(notificationId: Int) {
-        val notificationManager = NotificationManagerCompat.from(context)
-        notificationManager.cancel(notificationId)
-    }
-    
-    fun cancelAllNotifications() {
-        val notificationManager = NotificationManagerCompat.from(context)
-        notificationManager.cancelAll()
-    }
+//    fun cancelNotification(notificationId: Int) {
+//        val notificationManager = NotificationManagerCompat.from(context)
+//        notificationManager.cancel(notificationId)
+//    }
+//
+//    fun cancelAllNotifications() {
+//        val notificationManager = NotificationManagerCompat.from(context)
+//        notificationManager.cancelAll()
+//    }
 }
 

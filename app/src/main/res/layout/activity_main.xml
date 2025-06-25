@@ -40,7 +40,7 @@
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
                     android:fontFamily="@font/poppins_bold"
-                    android:text="Prayer Times"
+                    android:text="@string/prayer_times"
                     android:textColor="@color/primary_text"
                     android:textSize="28sp"
                     android:textStyle="bold" />
@@ -52,21 +52,24 @@
                     android:layout_gravity="center"
                     android:layout_marginTop="8dp"
                     android:gravity="center"
-                    android:orientation="horizontal">
+                    android:orientation="horizontal"
+                    tools:ignore="UseCompoundDrawables">
 
                     <ImageView
                         android:layout_width="16dp"
                         android:layout_height="16dp"
                         android:layout_marginEnd="8dp"
                         android:src="@drawable/ic_location"
-                        android:tint="@color/accent_color" />
+                        app:tint="@color/accent_color"
+                        android:contentDescription="@string/LatLon"
+                        />
 
                     <TextView
                         android:id="@+id/tv_location"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:fontFamily="@font/poppins_medium"
-                        android:text="Lat: ---, Lon: ---"
+                        android:text="@string/LatLon"
                         android:textColor="@color/secondary_text"
                         android:textSize="14sp" />
                 </LinearLayout>
@@ -88,7 +91,7 @@
                         android:focusable="true"
                         android:fontFamily="@font/poppins_semibold"
                         android:padding="12dp"
-                        android:text="Thursday, June 19, 2025"
+                        android:text="@string/date"
                         android:textColor="@color/accent_color"
                         android:textSize="16sp" />
 
@@ -99,7 +102,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
                         android:fontFamily="@font/poppins_regular"
-                        android:text="22 Dhul-Qi'dah 1446"
+                        android:text="@string/hijri"
                         android:textColor="@color/tertiary_text"
                         android:textSize="14sp" />
                 </LinearLayout>
@@ -138,7 +141,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:fontFamily="@font/poppins_medium"
-                        android:text="Current Prayer"
+                        android:text="@string/CurrentPrayer"
                         android:textColor="@color/accent_text"
                         android:textSize="14sp" />
 
@@ -148,7 +151,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
                         android:fontFamily="@font/poppins_bold"
-                        android:text="Fajr"
+                        android:text="@string/CurrentPrayerName"
                         android:textColor="@color/accent_color"
                         android:textSize="24sp" />
 
@@ -158,7 +161,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
                         android:fontFamily="@font/poppins_medium"
-                        android:text="04:12 AM"
+                        android:text="@string/CurrentPrayerTime"
                         android:textColor="@color/accent_text"
                         android:textSize="16sp" />
                 </LinearLayout>
@@ -182,7 +185,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:fontFamily="@font/poppins_medium"
-                        android:text="Next Prayer"
+                        android:text="@string/NextPrayer"
                         android:textColor="@color/accent_text"
                         android:textSize="14sp" />
 
@@ -192,7 +195,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
                         android:fontFamily="@font/poppins_bold"
-                        android:text="Dhuhr"
+                        android:text="@string/NextPrayerName"
                         android:textColor="@color/accent_color"
                         android:textSize="24sp" />
 
@@ -202,7 +205,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
                         android:fontFamily="@font/poppins_medium"
-                        android:text="in 2h 45m"
+                        android:text="@string/NextPrayerTime"
                         android:textColor="@color/accent_text"
                         android:textSize="16sp" />
                 </LinearLayout>
@@ -232,7 +235,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
                     android:fontFamily="@font/poppins_semibold"
-                    android:text="Today's Prayer Times"
+                    android:text="@string/TodaysPrayersTimes"
                     android:textColor="@color/primary_text"
                     android:textSize="20sp" />
 
@@ -246,20 +249,23 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:orientation="horizontal">
+                        android:orientation="horizontal"
+                        tools:ignore="UseCompoundDrawables">
 
                         <ImageView
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:layout_marginEnd="12dp"
                             android:src="@drawable/ic_fajr"
-                            android:tint="@color/fajr_color" />
+                            app:tint="@color/fajr_color"
+                            android:contentDescription="@string/Fajr"
+                            />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:fontFamily="@font/poppins_medium"
-                            android:text="Fajr"
+                            android:text="@string/Fajr"
                             android:textColor="@color/primary_text"
                             android:textSize="16sp" />
                     </LinearLayout>
@@ -269,7 +275,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:fontFamily="@font/poppins_semibold"
-                        android:text="04:12 AM"
+                        android:text="@string/FajrTime"
                         android:textColor="@color/time_text"
                         android:textSize="16sp" />
                 </LinearLayout>
@@ -284,20 +290,23 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:orientation="horizontal">
+                        android:orientation="horizontal"
+                        tools:ignore="UseCompoundDrawables">
 
                         <ImageView
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:layout_marginEnd="12dp"
                             android:src="@drawable/ic_sunrise"
-                            android:tint="@color/sunrise_color" />
+                            app:tint="@color/sunrise_color"
+                            android:contentDescription="@string/Sunrise"
+                            />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:fontFamily="@font/poppins_medium"
-                            android:text="Sunrise"
+                            android:text="@string/Sunrise"
                             android:textColor="@color/primary_text"
                             android:textSize="16sp" />
                     </LinearLayout>
@@ -307,7 +316,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:fontFamily="@font/poppins_semibold"
-                        android:text="05:45 AM"
+                        android:text="@string/SunriseTime"
                         android:textColor="@color/time_text"
                         android:textSize="16sp" />
                 </LinearLayout>
@@ -322,20 +331,23 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:orientation="horizontal">
+                        android:orientation="horizontal"
+                        tools:ignore="UseCompoundDrawables">
 
                         <ImageView
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:layout_marginEnd="12dp"
                             android:src="@drawable/ic_dhuhr"
-                            android:tint="@color/dhuhr_color" />
+                            app:tint="@color/dhuhr_color"
+                            android:contentDescription="@string/Dhuhr"
+                            />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:fontFamily="@font/poppins_medium"
-                            android:text="Dhuhr"
+                            android:text="@string/Dhuhr"
                             android:textColor="@color/primary_text"
                             android:textSize="16sp" />
                     </LinearLayout>
@@ -345,7 +357,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:fontFamily="@font/poppins_semibold"
-                        android:text="12:30 PM"
+                        android:text="@string/DhuhrTime"
                         android:textColor="@color/time_text"
                         android:textSize="16sp" />
                 </LinearLayout>
@@ -360,20 +372,22 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:orientation="horizontal">
+                        android:orientation="horizontal"
+                        tools:ignore="UseCompoundDrawables">
 
                         <ImageView
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:layout_marginEnd="12dp"
                             android:src="@drawable/ic_asr"
-                            android:tint="@color/asr_color" />
+                            app:tint="@color/asr_color"
+                            android:contentDescription="@string/Asr"/>
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:fontFamily="@font/poppins_medium"
-                            android:text="Asr"
+                            android:text="@string/Asr"
                             android:textColor="@color/primary_text"
                             android:textSize="16sp" />
                     </LinearLayout>
@@ -383,7 +397,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:fontFamily="@font/poppins_semibold"
-                        android:text="03:45 PM"
+                        android:text="@string/AsrTime"
                         android:textColor="@color/time_text"
                         android:textSize="16sp" />
                 </LinearLayout>
@@ -398,20 +412,23 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:orientation="horizontal">
+                        android:orientation="horizontal"
+                        tools:ignore="UseCompoundDrawables">
 
                         <ImageView
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:layout_marginEnd="12dp"
                             android:src="@drawable/ic_sunset"
-                            android:tint="@color/sunset_color" />
+                            app:tint="@color/sunset_color"
+                            android:contentDescription="@string/Sunset"
+                            />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:fontFamily="@font/poppins_medium"
-                            android:text="Sunset"
+                            android:text="@string/Sunset"
                             android:textColor="@color/primary_text"
                             android:textSize="16sp" />
                     </LinearLayout>
@@ -421,7 +438,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:fontFamily="@font/poppins_semibold"
-                        android:text="06:55 PM"
+                        android:text="@string/SunsetTime"
                         android:textColor="@color/time_text"
                         android:textSize="16sp" />
                 </LinearLayout>
@@ -436,20 +453,22 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:orientation="horizontal">
+                        android:orientation="horizontal"
+                        tools:ignore="UseCompoundDrawables">
 
                         <ImageView
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:layout_marginEnd="12dp"
                             android:src="@drawable/ic_maghrib"
-                            android:tint="@color/maghrib_color" />
+                            app:tint="@color/maghrib_color"
+                            android:contentDescription="@string/Maghrib"/>
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:fontFamily="@font/poppins_medium"
-                            android:text="Maghrib"
+                            android:text="@string/Maghrib"
                             android:textColor="@color/primary_text"
                             android:textSize="16sp" />
                     </LinearLayout>
@@ -459,7 +478,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:fontFamily="@font/poppins_semibold"
-                        android:text="06:55 PM"
+                        android:text="@string/MaghribTime"
                         android:textColor="@color/time_text"
                         android:textSize="16sp" />
                 </LinearLayout>
@@ -474,20 +493,23 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:orientation="horizontal">
+                        android:orientation="horizontal"
+                        tools:ignore="UseCompoundDrawables">
 
                         <ImageView
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:layout_marginEnd="12dp"
                             android:src="@drawable/ic_isha"
-                            app:tint="@color/isha_color" />
+                            app:tint="@color/isha_color"
+                            android:contentDescription="@string/Isha"
+                            />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:fontFamily="@font/poppins_medium"
-                            android:text="Isha"
+                            android:text="@string/Isha"
                             android:textColor="@color/primary_text"
                             android:textSize="16sp" />
                     </LinearLayout>
@@ -497,7 +519,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:fontFamily="@font/poppins_semibold"
-                        android:text="08:10 PM"
+                        android:text="@string/IshaTime"
                         android:textColor="@color/time_text"
                         android:textSize="16sp" />
                 </LinearLayout>
@@ -511,12 +533,14 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:orientation="horizontal">
+                        android:orientation="horizontal"
+                        tools:ignore="UseCompoundDrawables">
 
                         <ImageView
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:layout_marginEnd="12dp"
+                            android:contentDescription="@string/Midnight"
                             android:src="@drawable/ic_midnight"
                             app:tint="@color/midnight_color" />
 
@@ -524,7 +548,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:fontFamily="@font/poppins_medium"
-                            android:text="Midnight"
+                            android:text="@string/Midnight"
                             android:textColor="@color/primary_text"
                             android:textSize="16sp" />
                     </LinearLayout>
@@ -534,7 +558,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:fontFamily="@font/poppins_semibold"
-                        android:text="11:10 PM"
+                        android:text="@string/MidnightTime"
                         android:textColor="@color/time_text"
                         android:textSize="16sp" />
                 </LinearLayout>
@@ -555,7 +579,7 @@
                     android:id="@+id/btn_update_data"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Update Data"
+                    android:text="@string/UpdateData"
                     android:fontFamily="@font/poppins_semibold"
                     android:backgroundTint="@color/accent_color"
                     android:textColor="@color/primary_text"
@@ -570,8 +594,7 @@
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
                     android:visibility="gone"
-                    style="@android:style/Widget.DeviceDefault.Light.ProgressBar.Large"
-                    android:layout_centerInParent="true"/>
+                    style="@android:style/Widget.DeviceDefault.Light.ProgressBar.Large" />
             </LinearLayout>
 
 

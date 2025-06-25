@@ -1,3 +1,31 @@
 <resources>
     <string name="app_name">Salah Time</string>
+    <string name="prayer_times">Prayer Times</string>
+    <string name="LatLon">Lat: ---, Lon: ---</string>
+    <string name="date">Thursday, June 19, 2025</string>
+    <string name="hijri">22 Dhul-Qi\'dah 1446</string>
+    <string name="CurrentPrayer">Current Prayer</string>
+    <string name="CurrentPrayerName">Fajr</string>
+    <string name="CurrentPrayerTime">04:12 AM</string>
+    <string name="NextPrayer">Next Prayer</string>
+    <string name="NextPrayerName">Dhuhr</string>
+    <string name="NextPrayerTime">12:37 PM</string>
+    <string name="TodaysPrayersTimes">Today\'s Prayer Times</string>
+    <string name="Fajr">Fajr</string>
+    <string name="FajrTime">04:12 AM</string>
+    <string name="Sunrise">Sunrise</string>
+    <string name="SunriseTime">05:45 AM</string>
+    <string name="Dhuhr">Dhuhr</string>
+    <string name="DhuhrTime">12:37 PM</string>
+    <string name="Asr">Asr</string>
+    <string name="AsrTime">03:45 PM</string>
+    <string name="Sunset">Sunset</string>
+    <string name="SunsetTime">06:55 PM</string>
+    <string name="Maghrib">Maghrib</string>
+    <string name="MaghribTime">07:45 PM</string>
+    <string name="Isha">Isha</string>
+    <string name="IshaTime">08:10 PM</string>
+    <string name="Midnight">Midnight</string>
+    <string name="MidnightTime">11:10 PM</string>
+    <string name="UpdateData">Update Data</string>
 </resources>
