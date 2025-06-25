@@ -28,4 +28,5 @@
     <string name="Midnight">Midnight</string>
     <string name="MidnightTime">11:10 PM</string>
     <string name="UpdateData">Update Data</string>
+    <string name="appwidget_text">EXAMPLE</string>
 </resources>

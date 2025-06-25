@@ -77,7 +77,7 @@ class PrayerNotificationScheduler(private val context: Context) {
     fun cancelAllScheduledNotifications() {
         // Cancel all possible notification IDs
         val baseIds = listOf(100, 200, 300, 400, 500) // Fajr, Dhuhr, Asr, Maghrib, Isha
-        val offsets = listOf(1, 2, 3, 4) // 15min, 5min, start, end
+        val offsets = listOf(3, 4) // start, end
 
         baseIds.forEach { baseId ->
             offsets.forEach { offset ->
